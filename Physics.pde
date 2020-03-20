@@ -104,7 +104,7 @@ class CarClimber extends GameObject{
 class Bullet extends GameObject{
   float vx,vy;
   float vangle;
-  float drag = 0.99;
+  float drag = 1;
   
   
   
