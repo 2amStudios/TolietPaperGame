@@ -9,24 +9,33 @@ import org.jbox2d.dynamics.contacts.*;
 
 //0 - play
 int gamestate = 0;
+PImage gun;
+
+PGraphics mainCanvas;
+
+void settings(){
+  size(displayWidth,displayHeight-50,P2D);
+}
 void setup(){
   
   box2d = new Box2DProcessing(this);
   box2d.createWorld();
   box2d.setGravity(0,0);
   box2d.listenForCollisions();
-  size(1280,960);
+  
+ frame.setResizable(true);
   
   t = new Truck(100,100,radians(30));
   gameobjects.add(t);
   
- 
+  gun = loadImage("gunsheet.png");
+  mainCanvas = createGraphics(displayWidth,displayHeight,P2D);
   
   testpath = new Path();
   testpath.path.add(new PathSegment(new Vec2(),new Vec2(width*4,300)));
   testpath.path.add(new PathSegment(new Vec2(width*4,300),new Vec2(width*8,0)));
   float tpx = width*8; float tpy = 0;
-  for(int i = 0;i<55;i++){
+  for(int i = 0;i<70;i++){
     
     ang+=random(-1,1);
     ang = constrain(ang,-PI,PI);
@@ -79,7 +88,7 @@ float scale = 1;
 
 
 void draw(){
-  background(200);
+  
   switch(gamestate){
     case 0:
       for(int i = 0;i<gameobjects.size();i++){
@@ -98,41 +107,44 @@ void draw(){
       cmy += ((height/2*scale)-t.position.y-cmy)*0.1;
       gmx = mouseX*scale-cmx;
       gmy = mouseY*scale-cmy;
-      pushMatrix();
-      scale(1f/scale);
-      translate(cmx,cmy);
+      mainCanvas.beginDraw();
+      mainCanvas.background(20);
+      mainCanvas.pushMatrix();
+      mainCanvas.scale(1f/scale);
+      mainCanvas.translate(cmx,cmy);
       
-      ellipse(gmx,gmy,5,5);
+      mainCanvas.ellipse(gmx,gmy,5,5);
       
       
       
       
-      fill(255);
+      mainCanvas.fill(255);
       for(GameObject g:gameobjects){
         if(g instanceof CarClimber){
         
           continue;
         }
-        g.draw();
+        g.draw(mainCanvas);
       }
       
       //debug
       for(PathSegment g:testpath.path){
-        line(g.start.x,g.start.y,g.finish.x,g.finish.y);
+        mainCanvas.line(g.start.x,g.start.y,g.finish.x,g.finish.y);
       }
-      popMatrix();
+      mainCanvas.popMatrix();
       
-      text(""+degrees(t.angle),20,20);
+      
       
       //spawning goes here
       if(random(300)<1){
-        int thing = constrain((int)random(t.totalpathTravelled*0.23),0,2);
+        int thing = constrain((int)random(t.totalpathTravelled*0.23)+2,0,2);
         float severity = t.totalpathTravelled/60f;
         for(int i=0;i<constrain(severity*10f/(thing+1f),1,10);i++){
           spawnAtPathPoint(thing,(int)(t.totalpathTravelled+0.8)+(random(2)>1?1:-3),100);
         }
       }
-      
+      mainCanvas.endDraw();
+      image(mainCanvas,0,0);
     break;
   }
   

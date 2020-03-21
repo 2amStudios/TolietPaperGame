@@ -38,3 +38,13 @@
       return t/abs(t);
     }
     
+    void drawSprite(PGraphics pg,PImage currentTexture,int tx,int ty,int tw,int th,float x,float y,float w,float h){
+  pg.noStroke();
+  pg.beginShape(QUADS);
+  pg.texture(currentTexture);
+  pg.vertex(x,   y,   tx,    ty);
+  pg.vertex(x+w, y,   tx+tw, ty);
+  pg.vertex(x+w, y+h, tx+tw, ty+th);
+  pg.vertex(x,   y+h, tx,    ty+th);
+  pg.endShape();
+}
