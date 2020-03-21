@@ -22,9 +22,8 @@ void setup(){
   box2d.createWorld();
   box2d.setGravity(0,0);
   box2d.listenForCollisions();
-  
- frame.setResizable(true);
-  
+  frame.setResizable(true);
+
   t = new Truck(100,100,radians(30));
   gameobjects.add(t);
   
