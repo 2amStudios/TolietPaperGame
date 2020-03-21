@@ -1,4 +1,4 @@
-
+  
 Box2DProcessing box2d;
 
 
@@ -179,6 +179,7 @@ class Bullet extends GameObject {
     pg.pushMatrix();
     pg.translate(position.x, position.y);
     pg.rotate(vangle+PI/2);
+    pg.fill(0,255,0);
     pg.rect(-6, -8, 12, 16);
     pg.popMatrix();
   }
@@ -449,11 +450,12 @@ class Truck extends PhysicsGameObject {
     pg.stroke(0);
     pg.pushMatrix();
     pg.line(0, 0, dd.x*1000, dd.y*1000);
-    pg.rotate(-angle);
-    pg.rect(-60, -120, 120, 240);
+    pg.rotate(-angle+PI);
+    pg.image(van,-van.width/2,-van.height/2,van.width,van.height);
     pg.fill(0);
     pg.text("MODE:"+mode, 0, 0);
     pg.fill(255);
+    pg.rotate(-PI);
     for (CarClimber c : climbers) {
       c.draw(pg);
     }
@@ -467,7 +469,7 @@ class Truck extends PhysicsGameObject {
       PVector p = c.getAbsolutePos();
       pg.fill(255,0,0);
       pg.ellipse(p.x,p.y,10,10);
-      pg.fill(255);
+      pg.fill(0,255,0);
     }
     
   }
@@ -539,9 +541,9 @@ class Car extends PhysicsGameObject {
     pg.translate(position.x, position.y);
     //line(0,0,dd.x*1000,dd.y*1000);
     pg.rotate(-angle);
-    pg.fill(200+lastdamage);
+    pg.fill(0,200+lastdamage,0);
     pg.rect(-45, -len/2, 90, len);
-    pg.fill(255);
+    pg.fill(0,255,0);
     for (CarClimber c : climbers) {
       c.draw(pg);
     }
@@ -615,9 +617,9 @@ class Bike extends PhysicsGameObject {
     pg.translate(position.x, position.y);
     //line(0,0,dd.x*1000,dd.y*1000);
     pg.rotate(-angle);
-    pg.fill(200+lastdamage);
+    pg.fill(0,200+lastdamage,0);
     pg.rect(-5, -len/2, 10, len);
-    pg.fill(255);
+    pg.fill(0,255,0);
     pg.popMatrix();
   }
 
@@ -684,9 +686,9 @@ class PersonOnFoot extends PhysicsGameObject {
     pg.translate(position.x, position.y);
     //line(0,0,dd.x*1000,dd.y*1000);
     pg.rotate(-angle);
-    pg.fill(200+lastdamage);
+    pg.fill(0,200+lastdamage,0);
     pg.rect(-20, -len/2, 40, len);
-    pg.fill(255);
+    pg.fill(0,255,0);
     pg.popMatrix();
   }
 

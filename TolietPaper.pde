@@ -9,7 +9,16 @@ import org.jbox2d.dynamics.contacts.*;
 
 //0 - play
 int gamestate = 0;
+
+
+//sprites
 PImage gun;
+PImage van;
+
+//shader
+PShader shader;
+PImage pallette;
+PImage noise;
 
 PGraphics mainCanvas;
 
@@ -28,8 +37,14 @@ void setup(){
   gameobjects.add(t);
   
   gun = loadImage("gunsheet.png");
-  mainCanvas = createGraphics(displayWidth,displayHeight,P2D);
+  van= loadImage("truck.png");
   
+  
+  noise = loadImage("NoiseTex.png");
+  pallette = loadImage("pal.png");
+  
+  mainCanvas = createGraphics(displayWidth,displayHeight,P2D);
+  ((PGraphicsOpenGL)this.g).textureSampling(2);
   testpath = new Path();
   testpath.path.add(new PathSegment(new Vec2(),new Vec2(width*4,300)));
   testpath.path.add(new PathSegment(new Vec2(width*4,300),new Vec2(width*8,0)));
@@ -45,6 +60,8 @@ void setup(){
     tpx+=dx;
     tpy+=dy;
   }
+  shader = loadShader("shader.glsl");
+  shader.init();
 }
 
 
@@ -136,13 +153,22 @@ void draw(){
       
       //spawning goes here
       if(random(300)<1){
-        int thing = constrain((int)random(t.totalpathTravelled*0.23)+2,0,2);
+        int thing = constrain((int)random(t.totalpathTravelled*0.23),0,2);
         float severity = t.totalpathTravelled/60f;
         for(int i=0;i<constrain(severity*10f/(thing+1f),1,10);i++){
           spawnAtPathPoint(thing,(int)(t.totalpathTravelled+0.8)+(random(2)>1?1:-3),100);
         }
       }
+      //progress bar
+      mainCanvas.fill(0,255,0);
+      mainCanvas.rect(0,0,width*t.totalpathTravelled/70f,20);
+      
       mainCanvas.endDraw();
+      shader.set("noisetex",noise);
+      shader.set("pal",pallette);
+      shader.set("offset",-cmx/256,cmy/256);
+      shader.set("steps",pallette.width);
+      shader(shader);
       image(mainCanvas,0,0);
     break;
   }
