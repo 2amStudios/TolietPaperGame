@@ -254,12 +254,13 @@ void draw(){
       
       
       //spawning goes here
-      if(random(250)<1){
+      if(random(250)<1||lastspawn>60*20){
         int thing = constrain((int)random(constrain(t.totalpathTravelled*0.15,0,3)),0,2);
         float severity = t.totalpathTravelled/60f;
         for(int i=0;i<constrain(severity*10f/(thing+1f),1,10);i++){
           spawnAtPathPoint(thing,(int)(t.totalpathTravelled+0.8)+(random(2)>1?1:-3),100);
         }
+        lastspawn=0;
       }
       //progress bar
       mainCanvas.fill(0,255,0);
@@ -311,3 +312,5 @@ void draw(){
   }
 
 }
+
+int lastspawn=1000;

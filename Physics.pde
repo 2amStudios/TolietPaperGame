@@ -132,7 +132,7 @@ class CarClimber extends GameObject {
           t.laststeal=0;
           paperammo-=30;
           stealcooldown=0;
-          t.hp-=5;
+          t.hp-=9;
         }
         stealcooldown++;
       }
