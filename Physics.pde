@@ -93,9 +93,12 @@ class CarClimber extends GameObject {
      return position.copy().rotate(-current.angle).add(current.position);
   }
   Vec2 jumptarget;
+  float angle = 0;
+  float speed;
   void update() {
     lastdamage++;
     jumpcooldown++;
+    speed=0;
     if(target!=null){
       PVector abspos =  getAbsolutePos();
       Vec2 jumptargetrel = target.constrainPoint(target.transform(abspos));
@@ -107,10 +110,25 @@ class CarClimber extends GameObject {
         target = null;
       }
       Vec2 moveto = current.constrainPoint(jumptarget);
-      position.x += constrain((moveto.x-position.x)*0.1,-2,2);
-      position.y += constrain((moveto.y-position.y)*0.1,-2,2);
+      angle = atan2(moveto.y-position.y,moveto.x-position.x);
+      Vec2 vel = new Vec2(constrain((moveto.x-position.x)*0.1,-2,2),constrain((moveto.y-position.y)*0.1,-2,2));
+      position.x += vel.x;
+      position.y += vel.y;
+      speed = vel.length();
     }
-    
+    if(current==t){
+      Vec2 moveto = new Vec2(0,-60);
+      float dist = dist(moveto.x,moveto.y,position.x,position.y);
+      if(dist>20){
+        angle = atan2(moveto.y-position.y,moveto.x-position.x);
+        Vec2 vel = new Vec2(constrain((moveto.x-position.x)*0.01,-2,2),constrain((moveto.y-position.y)*0.01,-2,2));
+        position.x += vel.x;
+        position.y += vel.y;
+        speed = vel.length();
+      }else{
+        //steal
+      }
+    }
     if (current==null) {
       hp=0;
     }
@@ -123,14 +141,19 @@ class CarClimber extends GameObject {
     }
     return false;
   }
+  int frame = 0;
   void draw(PGraphics pg) {
+    frame++;
+    frame= frame%36;
+    int aframe = frame/6;
+    int speedlevel = (int)constrain(speed,0,3);
     pg.fill(200+lastdamage);
     pg.stroke(0);
-    pg.ellipse(position.x, position.y, 30, 30);
-    if(target!=null&&jumptarget!=null){
-      pg.fill(255,0,0);
-      pg.ellipse(jumptarget.x, jumptarget.y, 20, 20);
-    }
+    pg.pushMatrix();
+    pg.translate(position.x, position.y);
+    pg.rotate(angle);
+    drawSprite(pg,enemy,aframe*30,40*speedlevel,30,40,-15,-20,30,40);
+    pg.popMatrix();
     pg.fill(255);
   }
   void destroy() {
@@ -155,6 +178,7 @@ class Bullet extends GameObject {
     this.vx = vx;
     this.vy= vy;
   }
+  float life=0;
   void update() {
     position.x+=vx;
     position.y+=vy;
@@ -172,15 +196,16 @@ class Bullet extends GameObject {
         }
       }
     }
+    life++;
     
   }
 
   void draw(PGraphics pg) {
     pg.pushMatrix();
     pg.translate(position.x, position.y);
-    pg.rotate(vangle+PI/2);
+    pg.rotate(vangle+PI/2 + life*0.1);
     pg.fill(0,255,0);
-    pg.rect(-6, -8, 12, 16);
+    pg.image(bullet,-bullet.width/2,-bullet.height/2,bullet.width,bullet.height);
     pg.popMatrix();
   }
   void destroy() {
@@ -198,6 +223,16 @@ abstract class PhysicsGameObject extends GameObject {
       CarClimber c = new CarClimber(this);
       c.position.x= random(-10, 10);
       c.position.y= random(-10, 10);
+      climbers.add(c);
+      gameobjects.add(c);
+    }
+  }
+  void spawnClimberFrom(Vec2 abspos) {
+    if (climbers.size()<climbcapacity) {
+      CarClimber c = new CarClimber(this);
+      Vec2 p = constrainPoint(transform(abspos));
+      c.position.x= p.x;
+      c.position.y= p.y;
       climbers.add(c);
       gameobjects.add(c);
     }
@@ -376,11 +411,17 @@ abstract class PhysicsGameObject extends GameObject {
 class PathSegment {
   Vec2 start, finish;
   float angle;
+  float length;
+  Vec2 normdir;
+  
   PathSegment(Vec2 start, Vec2 finish) {
     this.start=start;
     this.finish = finish;
     Vec2 diff = finish.sub(start);
+    normdir = new Vec2(diff);
+    normdir.normalize();
     angle = ((atan2(-diff.y, diff.x)+PI/2+ (2*PI))%(2*PI));
+    length = dist(start.x,start.y,finish.x,finish.y);
   }
 
   float alongness(Vec2 pos) {
@@ -457,20 +498,20 @@ class Truck extends PhysicsGameObject {
     pg.fill(255);
     pg.rotate(-PI);
     for (CarClimber c : climbers) {
+      pg.image(aura,c.position.x-36,c.position.y-36);
+    }
+    for (CarClimber c : climbers) {
       c.draw(pg);
     }
     
     pg.popMatrix();
     pg.rotate(atan2(dir.y, dir.x)+PI/2);
     drawSprite(pg,gun,constrain(firetick,0,4)*(gun.width/5),0,(gun.width/5),gun.height,-40, -30, 80, 60);
-    
+    pg.rotate(PI/2);
+    drawSprite(pg,player,constrain(firetick,0,4)*(player.width/6),0,(player.width/6),player.height,20-player.width/12, 5-player.height/2, player.width/6, player.height);
     pg.popMatrix();
-    for (CarClimber c : climbers) {
-      PVector p = c.getAbsolutePos();
-      pg.fill(255,0,0);
-      pg.ellipse(p.x,p.y,10,10);
-      pg.fill(0,255,0);
-    }
+    
+    
     
   }
   @Override
@@ -543,7 +584,9 @@ class Car extends PhysicsGameObject {
     pg.rotate(-angle);
     pg.fill(0,200+lastdamage,0);
     pg.rect(-45, -len/2, 90, len);
-    pg.fill(0,255,0);
+    for (CarClimber c : climbers) {
+      pg.image(aura,c.position.x-36,c.position.y-36);
+    }
     for (CarClimber c : climbers) {
       c.draw(pg);
     }
@@ -598,7 +641,7 @@ class Bike extends PhysicsGameObject {
           damage(sh*2);
         }
         if (other.climbers.size()<other.climbcapacity&&hp<=0&&random(1)<0.4) {
-          other.spawnClimber();
+          other.spawnClimberFrom(new Vec2(position.x, position.y));
         }
       }
     }
@@ -660,14 +703,14 @@ class PersonOnFoot extends PhysicsGameObject {
           sh  = c.pvel2.sub(vel).length()/60f;
           other=c.o1;
         }
-        if (sh>hp*0.1+0.5) {
+        if (sh>hp*0.1+0.5&&!(other instanceof PersonOnFoot)) {
           damage(sh);
           if (c.o1==t||c.o2==t) {
             t.speedpenalty+=0.5/(1+t.speedpenalty*5.0);
           }
         }
         if (other.climbers.size()<other.climbcapacity&&hp<=0&&random(1)<0.7) {
-          other.spawnClimber();
+          other.spawnClimberFrom(new Vec2(position.x, position.y));
         }
       }
     }
@@ -679,16 +722,19 @@ class PersonOnFoot extends PhysicsGameObject {
       hp=0;
     }
   }
+  int frame = 0;
   void draw(PGraphics pg) {
     //Vec2 dd = getForwardDir();
     //Vec2 tt  = transform(new Vec2(50,50));
+    frame++;
+    int aframe = (frame/6)%6;
     pg.pushMatrix();
     pg.translate(position.x, position.y);
     //line(0,0,dd.x*1000,dd.y*1000);
-    pg.rotate(-angle);
-    pg.fill(0,200+lastdamage,0);
-    pg.rect(-20, -len/2, 40, len);
-    pg.fill(0,255,0);
+    pg.rotate(-angle+PI/2);
+    pg.tint(200+lastdamage);
+    drawSprite(pg,enemy,aframe*30,40*3,30,40,-15,-20,30,40);
+    pg.noTint();
     pg.popMatrix();
   }
 

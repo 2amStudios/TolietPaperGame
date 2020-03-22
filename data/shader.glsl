@@ -27,7 +27,7 @@ void main() {
   vec2 pos = vertTexCoord.xy;
   vec4 color = texture2D(texture,pos);
   float bright = (texture2D(texture,pos).g)*(float(steps));
-  float brightmodstep = (mod(bright,1.0)-0.5) * 0.5 +0.5;
+  float brightmodstep = clamp((mod(bright,1.0)-0.5) * 0.5 +0.8,0.0,1.0);
   bright-=brightmodstep;
   float noiseval = texture2D(noisetex,mod(gl_FragCoord.xy*0.004+offset,vec2(0.99))).r;
   if(brightmodstep>noiseval){

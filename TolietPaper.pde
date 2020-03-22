@@ -8,13 +8,21 @@ import org.jbox2d.dynamics.*;
 import org.jbox2d.dynamics.contacts.*;
 
 //0 - play
-int gamestate = 0;
+int gamestate = -1;
 
 
 //sprites
 PImage gun;
 PImage van;
+PImage road;
+PImage bullet;
+PImage player;
+PImage enemy;
+PImage aura;
+PImage car;
 
+PImage title;
+PImage titletext;
 //shader
 PShader shader;
 PImage pallette;
@@ -36,12 +44,18 @@ void setup(){
   t = new Truck(100,100,radians(30));
   gameobjects.add(t);
   
+  title = loadImage("title.png");
+  titletext = loadImage("titletext.png");
   gun = loadImage("gunsheet.png");
   van= loadImage("truck.png");
-  
-  
+  road = loadImage("path.png");
+  bullet= loadImage("bullet.png");
+  player= loadImage("player.png");
+  enemy= loadImage("enemy.png");
   noise = loadImage("NoiseTex.png");
   pallette = loadImage("pal.png");
+  aura = loadImage("aura.png");
+  car = loadImage("car.png");
   
   mainCanvas = createGraphics(displayWidth,displayHeight,P2D);
   ((PGraphicsOpenGL)this.g).textureSampling(2);
@@ -49,7 +63,7 @@ void setup(){
   testpath.path.add(new PathSegment(new Vec2(),new Vec2(width*4,300)));
   testpath.path.add(new PathSegment(new Vec2(width*4,300),new Vec2(width*8,0)));
   float tpx = width*8; float tpy = 0;
-  for(int i = 0;i<70;i++){
+  for(int i = 0;i<100;i++){
     
     ang+=random(-1,1);
     ang = constrain(ang,-PI,PI);
@@ -60,20 +74,25 @@ void setup(){
     tpx+=dx;
     tpy+=dy;
   }
+  
+  for(int i =0;i<5;i++){
+    paths.add(new PathTile(i,testpath));
+  }
+  
   shader = loadShader("shader.glsl");
   shader.init();
 }
 
 
 float ang=0;
-
+ArrayList<PathTile> paths = new ArrayList();
 //game objects
 ArrayList<GameObject> gameobjects = new ArrayList();
 Truck t;
 Path testpath;
 
 void spawnAtPathPoint(int type, int node, float spread){
-  if(node<0){
+  if(node<0||node>testpath.path.size()-1){
     return;
   }
   PhysicsGameObject pg;
@@ -101,11 +120,27 @@ float gmx,gmy;
 float scale = 1;
 
 
-
+float animatetick =0;
+//title
+float titletextscale = 1.5;
 
 void draw(){
-  
+  animatetick++;
   switch(gamestate){
+    case -1:
+      background(42);
+      image(title,width/2 - title.width/2,height/2 - title.height/2);
+      pushMatrix();
+      translate(width/2,height/2);
+      rotate(sin(animatetick*0.01)*0.03);
+      scale(titletextscale);
+      titletextscale+=(0.5-titletextscale)*0.1;
+      image(titletext,- titletext.width/2, - titletext.height/2);
+      popMatrix();
+      if(mousePressed){
+        gamestate = 0;
+      }
+    break;
     case 0:
       for(int i = 0;i<gameobjects.size();i++){
         GameObject g = gameobjects.get(i);
@@ -131,8 +166,19 @@ void draw(){
       
       mainCanvas.ellipse(gmx,gmy,5,5);
       
-      
-      
+      int highestpathnode= 0;
+      for(int i = 0;i<paths.size();i++){
+        PathTile g = paths.get(i);
+        g.draw(0,mainCanvas);
+        highestpathnode = max(highestpathnode,g.node);
+        if(g.node<=t.totalpathTravelled-3){
+          paths.remove(i);
+          i--;
+        }
+      }
+      if(highestpathnode<t.totalpathTravelled+3){
+        paths.add(new PathTile(highestpathnode+1,testpath));
+      }
       
       mainCanvas.fill(255);
       for(GameObject g:gameobjects){
@@ -144,15 +190,13 @@ void draw(){
       }
       
       //debug
-      for(PathSegment g:testpath.path){
-        mainCanvas.line(g.start.x,g.start.y,g.finish.x,g.finish.y);
-      }
+      
       mainCanvas.popMatrix();
       
       
       
       //spawning goes here
-      if(random(300)<1){
+      if(random(100)<1){
         int thing = constrain((int)random(t.totalpathTravelled*0.23),0,2);
         float severity = t.totalpathTravelled/60f;
         for(int i=0;i<constrain(severity*10f/(thing+1f),1,10);i++){
