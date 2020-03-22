@@ -95,6 +95,7 @@ class CarClimber extends GameObject {
   Vec2 jumptarget;
   float angle = 0;
   float speed;
+  int stealcooldown = 0;
   void update() {
     lastdamage++;
     jumpcooldown++;
@@ -127,6 +128,12 @@ class CarClimber extends GameObject {
         speed = vel.length();
       }else{
         //steal
+        if(stealcooldown>100){
+          t.laststeal=0;
+          paperammo-=10;
+          stealcooldown=0;
+        }
+        stealcooldown++;
       }
     }
     if (current==null) {
@@ -191,9 +198,11 @@ class Bullet extends GameObject {
       if (g.isIn(pos)) {
         hp=0;
         g.damage(1);
+        pfx.add(new StaticAnimatedParticle(explode2,position.x, position.y,false,12));
         if (g instanceof Car) {
           ((Car)g).speed *=0.9;
         }
+        break;
       }
     }
     life++;
@@ -439,6 +448,9 @@ class Path {
   ArrayList<PathSegment> path = new ArrayList();
 }
 
+int paperammo = 10000;
+
+
 class Truck extends PhysicsGameObject {
 
   Truck(float x, float y, float ang) {
@@ -453,9 +465,10 @@ class Truck extends PhysicsGameObject {
 
   int firetick = 0;
   float speedpenalty = 0;
+  float laststeal = 100;
   void update() {
     updatePos();
-
+    laststeal++;
     if (mousePressed) {
       Vec2 dir = new Vec2(gmx-position.x, (gmy-position.y));
       dir.normalize();
@@ -464,6 +477,8 @@ class Truck extends PhysicsGameObject {
         firetick=0;
         Vec2 vel = box2d.vectorWorldToPixels(body.getLinearVelocity());
         gameobjects.add(new Bullet(position.x+dir.x*20, position.y+dir.y*20, dir.x*9+vel.x/60f, dir.y*9+vel.y/60f));
+        playSample("turret.wav",false,0.2);
+        paperammo--;
       }
       
       //dir  = dir.mul(100);
@@ -492,7 +507,9 @@ class Truck extends PhysicsGameObject {
     pg.pushMatrix();
     pg.line(0, 0, dd.x*1000, dd.y*1000);
     pg.rotate(-angle+PI);
+    pg.tint(100+laststeal);
     pg.image(van,-van.width/2,-van.height/2,van.width,van.height);
+    pg.noTint();
     pg.fill(0);
     pg.text("MODE:"+mode, 0, 0);
     pg.fill(255);
@@ -530,6 +547,8 @@ class Truck extends PhysicsGameObject {
 class Car extends PhysicsGameObject {
   float len;
   float speed =1.0;
+  boolean ded = false;
+   SpatialSample humm;
   Car(float x, float y, float ang) {
     position = new PVector(x, y);
     angle = ang;
@@ -544,6 +563,14 @@ class Car extends PhysicsGameObject {
   } 
 
   void update() {
+    if(humm==null&&!ded){
+      humm = playSample("car1.wav",position.x,position.y,true);
+      humm.basegain=80;
+      humm.gaindist=200;
+    }
+    humm.x=position.x;
+    humm.y=position.x;
+    humm.update();
     updatePos();
     float dtt = distanceToTruck();
     if (!collisions.isEmpty()) {
@@ -572,9 +599,16 @@ class Car extends PhysicsGameObject {
       }
     }
     collisions.clear();
-
-    followPath(testpath, constrain(t.totalpathTravelled>totalpathTravelled?1.5:0.5, 0, 1.5*speed));
+    if(!ded){
+      followPath(testpath, constrain(t.totalpathTravelled>totalpathTravelled?2.0:0.5, 0, 2.0*speed));
+    }else{
+      body.applyAngularImpulse(8.5*body.getMass());
+      
+    }
     applyVehicleDrag(1.0);
+    if (t.totalpathTravelled-totalpathTravelled>7) {
+      hp=0;
+    }
   }
   void draw(PGraphics pg) {
     //Vec2 dd = getForwardDir();
@@ -582,8 +616,10 @@ class Car extends PhysicsGameObject {
     pg.translate(position.x, position.y);
     //line(0,0,dd.x*1000,dd.y*1000);
     pg.rotate(-angle);
-    pg.fill(0,200+lastdamage,0);
-    pg.rect(-45, -len/2, 90, len);
+    pg.tint(200+min(50,lastdamage) - (ded?100:0));
+    pg.image(car,-car.width/2,car.height/2,car.width,-car.height);
+    //pg.rect(-45, -len/2, 90, len);
+    pg.noTint();
     for (CarClimber c : climbers) {
       pg.image(aura,c.position.x-36,c.position.y-36);
     }
@@ -603,7 +639,24 @@ class Car extends PhysicsGameObject {
     return new Vec2(constrain(rp.x,-45,45),constrain(rp.y,-len/2,len/2));
   
   } 
-
+  @Override
+  void damage(float damage) {
+    playSample("explosion1.wav",false,0.1);
+    super.damage(damage);
+    if(hp<=0){
+      hp=1;
+      if(!ded){
+        playSample("explosion3.wav",false,0.5);
+        if(humm!=null){
+          humm.player.kill();
+        }
+      }
+      ded = true;
+      pfx.add(new StaticAnimatedParticle(explode,position.x+random(-50,50), position.y+random(-50,50),false,14));
+      
+    }
+     playSample("hitsound.wav",false,0.2);
+  }
   void makeBody() {
     len = 120+random(50);
     makeRectBody(new Vec2(position.x, position.y), 90, len, 3, 0.1, 0.1);
@@ -614,15 +667,26 @@ class Car extends PhysicsGameObject {
 
 class Bike extends PhysicsGameObject {
   float len;
+  boolean spawnwasted = true;
+  SpatialSample humm;
   Bike(float x, float y, float ang) {
     position = new PVector(x, y);
     angle = ang;
     makeBody();
     hp = 10;
     body.setUserData(this);
+    
   } 
 
   void update() {
+    if(humm==null){
+      humm = playSample("bike1.wav",position.x,position.y,true);
+      humm.basegain=50;
+      humm.gaindist=100;
+    }
+    humm.x=position.x;
+    humm.y=position.x;
+    humm.update();
     updatePos();
 
     if (!collisions.isEmpty()) {
@@ -640,8 +704,9 @@ class Bike extends PhysicsGameObject {
         if (sh>hp*0.1+0.5) {
           damage(sh*2);
         }
-        if (other.climbers.size()<other.climbcapacity&&hp<=0&&random(1)<0.4) {
+        if (other.climbers.size()<other.climbcapacity&&hp<=0) {
           other.spawnClimberFrom(new Vec2(position.x, position.y));
+          spawnwasted = false;
         }
       }
     }
@@ -660,9 +725,10 @@ class Bike extends PhysicsGameObject {
     pg.translate(position.x, position.y);
     //line(0,0,dd.x*1000,dd.y*1000);
     pg.rotate(-angle);
-    pg.fill(0,200+lastdamage,0);
-    pg.rect(-5, -len/2, 10, len);
-    pg.fill(0,255,0);
+    pg.tint(200+lastdamage);
+    pg.image(bike,-bike.width/2,-bike.height/2,bike.width,bike.height);
+    drawSprite(pg,enemy,0,40*3,30,40,-15,-20,30,40);
+    pg.noTint();
     pg.popMatrix();
   }
 
@@ -676,6 +742,19 @@ class Bike extends PhysicsGameObject {
     makeRectBody(new Vec2(position.x, position.y), 10, len, 3, 0.1, 0.1);
     body.setTransform(box2d.coordPixelsToWorld(new Vec2(position.x, position.y)), angle);
   }
+  
+  void destroy(){
+    super.destroy();
+    pfx.add(new StaticAnimatedParticle(explode,position.x, position.y,false,14));
+    if(spawnwasted){
+      pfx.add(new StaticParticle(wasted,position.x, position.y));
+      println("spawned");
+    }
+    playSample("splat.wav",false,0.4);
+    if(humm!=null){
+      humm.player.kill();
+    }
+  }
 }
 
 class PersonOnFoot extends PhysicsGameObject {
@@ -687,7 +766,7 @@ class PersonOnFoot extends PhysicsGameObject {
     hp = 2;
     body.setUserData(this);
   } 
-
+  boolean spawnwasted = true;
   void update() {
     updatePos();
 
@@ -709,9 +788,11 @@ class PersonOnFoot extends PhysicsGameObject {
             t.speedpenalty+=0.5/(1+t.speedpenalty*5.0);
           }
         }
-        if (other.climbers.size()<other.climbcapacity&&hp<=0&&random(1)<0.7) {
+        if (other.climbers.size()<other.climbcapacity&&hp<=0&&random(1)<0.8) {
           other.spawnClimberFrom(new Vec2(position.x, position.y));
+          spawnwasted = false;
         }
+        
       }
     }
     collisions.clear();
@@ -737,7 +818,16 @@ class PersonOnFoot extends PhysicsGameObject {
     pg.noTint();
     pg.popMatrix();
   }
-
+   @Override
+  void destroy(){
+    super.destroy();
+    if(spawnwasted){
+      pfx.add(new StaticParticle(wasted,position.x, position.y));
+      println("spawned");
+    }
+    playSample("splat.wav",false,0.4);
+  }
+  
   @Override
     boolean isIn(Vec2 pos) {
     Vec2 tr = transform(pos);

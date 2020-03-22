@@ -20,6 +20,11 @@ PImage player;
 PImage enemy;
 PImage aura;
 PImage car;
+PImage bike;
+PImage explode;
+PImage explode2;
+
+PImage wasted;
 
 PImage title;
 PImage titletext;
@@ -29,6 +34,10 @@ PImage pallette;
 PImage noise;
 
 PGraphics mainCanvas;
+//audio
+Sample bgMusic= null;
+
+
 
 void settings(){
   size(displayWidth,displayHeight-50,P2D);
@@ -39,11 +48,11 @@ void setup(){
   box2d.createWorld();
   box2d.setGravity(0,0);
   box2d.listenForCollisions();
-  frame.setResizable(true);
+  surface.setResizable(true);
 
   t = new Truck(100,100,radians(30));
   gameobjects.add(t);
-  
+  initAudio();
   title = loadImage("title.png");
   titletext = loadImage("titletext.png");
   gun = loadImage("gunsheet.png");
@@ -56,10 +65,15 @@ void setup(){
   pallette = loadImage("pal.png");
   aura = loadImage("aura.png");
   car = loadImage("car.png");
-  
+  bike = loadImage("bike.png");
+  wasted = loadImage("wasted.png");
+  explode= loadImage("explode.png");
+  explode2= loadImage("explode2.png");
+  surface.setTitle("Rolled out");
   mainCanvas = createGraphics(displayWidth,displayHeight,P2D);
   ((PGraphicsOpenGL)this.g).textureSampling(2);
   testpath = new Path();
+  testpath.path.add(new PathSegment(new Vec2(0,-1000),new Vec2()));
   testpath.path.add(new PathSegment(new Vec2(),new Vec2(width*4,300)));
   testpath.path.add(new PathSegment(new Vec2(width*4,300),new Vec2(width*8,0)));
   float tpx = width*8; float tpy = 0;
@@ -75,6 +89,9 @@ void setup(){
     tpy+=dy;
   }
   
+  t.pathseg=1;
+  t.mode=1;
+  
   for(int i =0;i<5;i++){
     paths.add(new PathTile(i,testpath));
   }
@@ -88,6 +105,7 @@ float ang=0;
 ArrayList<PathTile> paths = new ArrayList();
 //game objects
 ArrayList<GameObject> gameobjects = new ArrayList();
+ArrayList<Particle> pfx = new ArrayList();
 Truck t;
 Path testpath;
 
@@ -126,6 +144,7 @@ float titletextscale = 1.5;
 
 void draw(){
   animatetick++;
+  updateAudio();
   switch(gamestate){
     case -1:
       background(42);
@@ -142,6 +161,11 @@ void draw(){
       }
     break;
     case 0:
+      if(bgMusic==null){
+        bgMusic = playSample("toilet_truck.mp3",true,0.5);
+        
+        //((Envelope)bgMusic.gain.getGainEnvelope()).addSegment(0,10);
+      }
       for(int i = 0;i<gameobjects.size();i++){
         GameObject g = gameobjects.get(i);
         g.update();
@@ -180,6 +204,19 @@ void draw(){
         paths.add(new PathTile(highestpathnode+1,testpath));
       }
       
+      for(int i = 0;i<pfx.size();i++){
+        Particle g = pfx.get(i);
+        g.update();
+        if(g.life<=0){
+          pfx.remove(i);
+          i--;
+        }
+      }
+      for( Particle p: pfx){
+        p.draw(mainCanvas);
+      }
+      
+      
       mainCanvas.fill(255);
       for(GameObject g:gameobjects){
         if(g instanceof CarClimber){
@@ -196,8 +233,8 @@ void draw(){
       
       
       //spawning goes here
-      if(random(100)<1){
-        int thing = constrain((int)random(t.totalpathTravelled*0.23),0,2);
+      if(random(250)<1){
+        int thing = constrain((int)random(constrain(t.totalpathTravelled*0.20,0,3)),0,2);
         float severity = t.totalpathTravelled/60f;
         for(int i=0;i<constrain(severity*10f/(thing+1f),1,10);i++){
           spawnAtPathPoint(thing,(int)(t.totalpathTravelled+0.8)+(random(2)>1?1:-3),100);
