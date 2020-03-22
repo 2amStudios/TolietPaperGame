@@ -132,6 +132,7 @@ class CarClimber extends GameObject {
           t.laststeal=0;
           paperammo-=10;
           stealcooldown=0;
+          t.hp-=5;
         }
         stealcooldown++;
       }
@@ -502,19 +503,15 @@ class Truck extends PhysicsGameObject {
   void draw(PGraphics pg) {
     Vec2 dd = getForwardDir();
     pg.pushMatrix();
-    pg.translate(position.x, position.y);
+    float shakeam = max(0,20-laststeal);
+    pg.translate(position.x+random(-shakeam), position.y+random(-shakeam));
     Vec2 dir = new Vec2(gmx-position.x, (gmy-position.y));
-    
-    
     pg.stroke(0);
     pg.pushMatrix();
-    pg.line(0, 0, dd.x*1000, dd.y*1000);
     pg.rotate(-angle+PI);
-    pg.tint(100+laststeal);
+    pg.tint(100+laststeal*4);
     pg.image(van,-van.width/2,-van.height/2,van.width,van.height);
     pg.noTint();
-    pg.fill(0);
-    pg.text("MODE:"+mode, 0, 0);
     pg.fill(255);
     pg.rotate(-PI);
     for (CarClimber c : climbers) {

@@ -23,12 +23,13 @@ PImage car;
 PImage bike;
 PImage explode;
 PImage explode2;
-
+PImage icon;
 PImage wasted;
 
 PImage title;
 PImage tut;
 PImage titletext;
+PImage winscreen;
 //shader
 PShader shader;
 PImage pallette;
@@ -37,7 +38,8 @@ PImage noise;
 PGraphics mainCanvas;
 //audio
 Sample bgMusic= null;
-
+float trans = 0;
+PFont font;
 
 
 void settings(){
@@ -68,10 +70,13 @@ void setup(){
   aura = loadImage("aura.png");
   car = loadImage("car.png");
   bike = loadImage("bike.png");
+  icon = loadImage("icons.png");
   wasted = loadImage("wasted.png");
   explode= loadImage("explode.png");
   explode2= loadImage("explode2.png");
+  winscreen=loadImage("winscreen.png");
   surface.setTitle("Rolled out");
+  font=(createFont("font.ttf",64));
   mainCanvas = createGraphics(displayWidth,displayHeight,P2D);
   ((PGraphicsOpenGL)this.g).textureSampling(2);
   testpath = new Path();
@@ -144,15 +149,20 @@ float animatetick =0;
 //title
 float titletextscale = 1.5;
 
+float time = 0;
+
 void draw(){
   animatetick++;
+  trans++;
+  
   updateAudio();
   switch(gamestate){
     case -2:
     background(42);
       image(tut,width/2 - tut.width/2,height/2 - tut.height/2);
-      if(mousePressed){
+      if(mousePressed&&trans>30){
         gamestate = 0;
+        trans=0;
       }
     break;
     case -1:
@@ -167,9 +177,11 @@ void draw(){
       popMatrix();
       if(mousePressed){
         gamestate =-2;
+        trans=0;
       }
     break;
     case 0:
+    time+=1f/60f;
       if(bgMusic==null){
         bgMusic = playSample("toilet_truck.mp3",true,0.5);
         
@@ -243,7 +255,7 @@ void draw(){
       
       //spawning goes here
       if(random(250)<1){
-        int thing = constrain((int)random(constrain(t.totalpathTravelled*0.20,0,3)),0,2);
+        int thing = constrain((int)random(constrain(t.totalpathTravelled*0.15,0,3)),0,2);
         float severity = t.totalpathTravelled/60f;
         for(int i=0;i<constrain(severity*10f/(thing+1f),1,10);i++){
           spawnAtPathPoint(thing,(int)(t.totalpathTravelled+0.8)+(random(2)>1?1:-3),100);
@@ -251,8 +263,19 @@ void draw(){
       }
       //progress bar
       mainCanvas.fill(0,255,0);
-      mainCanvas.rect(0,0,width*t.totalpathTravelled/70f,20);
-      
+      mainCanvas.rect(10,10,(width-100)*time/(360),20);
+      mainCanvas.noFill();
+      mainCanvas.stroke(0,255,0);
+      mainCanvas.rect(10,10,(width-100),20);
+      mainCanvas.noStroke();
+      mainCanvas.fill(0,255,0);
+      int iconw= icon.width/4;
+      drawSprite(mainCanvas,icon,3*iconw,0,iconw,icon.height,width-80,10,iconw,icon.height);
+      drawSprite(mainCanvas,icon,1*iconw,0,iconw,icon.height,10,100,iconw,icon.height);
+      mainCanvas.rect(80,120,t.hp,20);
+      mainCanvas.textFont(font);
+      drawSprite(mainCanvas,icon,0*iconw,0,iconw,icon.height,10,190,iconw,icon.height);
+      mainCanvas.text(paperammo+"",80,240);
       mainCanvas.endDraw();
       shader.set("noisetex",noise);
       shader.set("pal",pallette);
@@ -260,8 +283,25 @@ void draw(){
       shader.set("steps",pallette.width);
       shader(shader);
       image(mainCanvas,0,0);
+      
+      if(time/(360)>=1.0){
+        gamestate=1;
+        animatetick = 0;
+      }
+    break;
+    case 1:
+      resetShader();
+      background(animatetick);
+      tint(animatetick);
+      image(winscreen,width/2 - winscreen.width/2,height/2 - winscreen.height/2);
+      
     break;
   }
   
+  
+  if(trans<30){
+    fill(42,255-trans*9);
+    rect(0,0,width,height);
+  }
 
 }
