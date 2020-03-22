@@ -27,6 +27,7 @@ PImage explode2;
 PImage wasted;
 
 PImage title;
+PImage tut;
 PImage titletext;
 //shader
 PShader shader;
@@ -54,6 +55,7 @@ void setup(){
   gameobjects.add(t);
   initAudio();
   title = loadImage("title.png");
+  tut = loadImage("tut.png");
   titletext = loadImage("titletext.png");
   gun = loadImage("gunsheet.png");
   van= loadImage("truck.png");
@@ -146,6 +148,13 @@ void draw(){
   animatetick++;
   updateAudio();
   switch(gamestate){
+    case -2:
+    background(42);
+      image(tut,width/2 - tut.width/2,height/2 - tut.height/2);
+      if(mousePressed){
+        gamestate = 0;
+      }
+    break;
     case -1:
       background(42);
       image(title,width/2 - title.width/2,height/2 - title.height/2);
@@ -157,7 +166,7 @@ void draw(){
       image(titletext,- titletext.width/2, - titletext.height/2);
       popMatrix();
       if(mousePressed){
-        gamestate = 0;
+        gamestate =-2;
       }
     break;
     case 0:

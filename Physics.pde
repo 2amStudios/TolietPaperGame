@@ -164,9 +164,12 @@ class CarClimber extends GameObject {
     pg.fill(255);
   }
   void destroy() {
+    PVector pos = getAbsolutePos();
     if (current!=null) {
       current.climbers.remove(this);
     }
+    playSample("splat.wav",false,0.2);
+    pfx.add(new StaticParticle(wasted,pos.x, pos.y));
   }
 }
 class Bullet extends GameObject {
