@@ -130,7 +130,7 @@ class CarClimber extends GameObject {
         //steal
         if(stealcooldown>100){
           t.laststeal=0;
-          paperammo-=10;
+          paperammo-=30;
           stealcooldown=0;
           t.hp-=5;
         }

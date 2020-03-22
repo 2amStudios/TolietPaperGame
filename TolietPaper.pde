@@ -84,7 +84,7 @@ void setup(){
   testpath.path.add(new PathSegment(new Vec2(),new Vec2(width*4,300)));
   testpath.path.add(new PathSegment(new Vec2(width*4,300),new Vec2(width*8,0)));
   float tpx = width*8; float tpy = 0;
-  for(int i = 0;i<100;i++){
+  for(int i = 0;i<120;i++){
     
     ang+=random(-1,1);
     ang = constrain(ang,-PI,PI);
@@ -284,7 +284,7 @@ void draw(){
       shader(shader);
       image(mainCanvas,0,0);
       
-      if(time/(360)>=1.0){
+      if(time/(360)>=1){
         gamestate=1;
         animatetick = 0;
       }
@@ -294,7 +294,13 @@ void draw(){
       background(animatetick);
       tint(animatetick);
       image(winscreen,width/2 - winscreen.width/2,height/2 - winscreen.height/2);
-      
+      if(animatetick>300){
+        textAlign(CENTER,CENTER);
+        textFont(font);
+        fill(0);
+        float shake = 20f/(animatetick-300);
+        text("Delivered: "+paperammo+" toliet paper rolls",0+random(-shake,shake),150+random(-shake,shake),width,height);
+      }
     break;
   }
   
